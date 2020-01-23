@@ -5,24 +5,30 @@
 # <bitbar.title>Transmission-cli Remote</bitbar.title>
 # <bitbar.version>v1.0</bitbar.version>
 # <bitbar.author>Mykhaliuk Volodymyr</bitbar.author>
-# <bitbar.author.gitHub></bitbar.author.gitHub>
+# <bitbar.author.gitHub>https://github.com/mykhaliuk/transmission-cli-remote</bitbar.author.gitHub>
 # <bitbar.desc></bitbar.desc>
-# <bitbar.dependencies>transmission-remote</bitbar.dependencies>
+# <bitbar.dependencies>transmission-remote,nerd-fonts,ssed</bitbar.dependencies>
 # <bitbar.image></bitbar.image>
 #
 # Dependencies:
 #   transmission-remote (https://trac.transmissionbt.com/wiki/Building) available via homebrew `brew install transmission`
 
-COLOR="white";
-LENGTH=50;
-UP="↑|dropdown=false color=green";
-DOWN="↓|dropdown=false color=red";
-UPDOWN="↑↓|dropdown=false color=$COLOR";
+LENGTH=50;  # String legnth in torrent list
 START_DAEMON="/Users/vo/Applications/scripts/transmission/start_daemon.sh";
 STOP_DAEMON="/Users/vo/Applications/scripts/transmission/stop_daemon.sh";
+# Font
+CUSTOM_FONT='RobotoMono Nerd Font';
+# Icons set. You can replace them if you don't want to add an adittional (NERD Fonts) fonts.
+ICON_STOP=;
+ICON_IDLE=;
+ICON_SEEDDING=;
+ICON_DONE=;
+ICON_UPLOADING=;
+ICON_DOWNLOADING=;
+ICON_VERIFYING=;
 
 function is_remote () {
-  [[ -x /usr/local/bin/transmission-remote ]]
+  [[ -x /usr/local/bin/transmission-remote ]];
 }
 
 function print_error () {
@@ -40,7 +46,7 @@ function is_deamon_running () {
 }
 
 function print_run_demon_menu () {
-  echo "👻 |dropdown=false color=$COLOR";
+  echo "👻 |dropdown=false ";
   echo "---";
   # echo "|trim=false";
   echo "Daemon is offnline";
@@ -58,14 +64,14 @@ function print_status_bar () {
       # s/.*100%.*/N/g;
       s/.*%.*/M/g;" |
         sort -h | uniq -c | sed " # Now we replace standing letters with symbols
-              s/A//g;
-              s/B//g;
-              s/Z//g;
-              s/N//g;
-              s/L//g;
-              s/V//g;
-              s/M//g;" | awk '{print $2, $1}' | tr '\n' ' ';
-  echo "$@|dropdown=false font='RobotoMono Nerd Font'-Bold color=$COLOR";
+              s/A/$ICON_STOP/g;
+              s/B/$ICON_IDLE/g;
+              s/Z/$ICON_SEEDDING/g;
+              s/N/$ICON_DONE/g;
+              s/L/$ICON_UPLOADING/g;
+              s/V/$ICON_VERIFYING/g;
+              s/M/$ICON_DOWNLOADING/g;" | awk '{print $2, $1}' | tr '\n' ' ';
+  echo "$@|dropdown=false font='$CUSTOM_FONT'";
 }
 
 function print_menu_header (){
@@ -81,35 +87,33 @@ function print_menu_footer () {
   /usr/local/bin/transmission-remote -l |
     grep Sum |
     sed -E "
-      s/(Sum:) *([0-9]*\.[0-9]* [A-Z]*)\ *([0-9]*\.[0-9]*) *([0-9]*\.[0-9]*).*/\2  ( ⇣ \4  ⇡ \3 )/" |
+      s/(Sum:) *([0-9]*\.[0-9]* [A-Z]*)\ *([0-9]*\.[0-9]*) *([0-9]*\.[0-9]*).*/\2  ( ⇣ \4  ⇡ \3 )/;" |
     tr '\n' ' ';
-  echo "$@|color=white";
+  echo "$@";
 }
 
 function print_torrents_list () {
   /usr/local/bin/transmission-remote -l |
     grep % |
-    sed -E "
-      s/([0-9]*) *([0-9]*%) *([0-9]*\.[0-9]* [A-Z]{2,4} *(([0-9]* [A-z]*)|([A-z]*)) *[0-9]*\.[0-9]* *[0-9]*\.[0-9]* *[0-9]*\.[0-9]* *)(([A-z]*)|(Up & Down)) */\7   \1    \2     /g" |
+    /usr/local/bin/ssed -R "s/(\d+\s+)(\d+%).+?(?=((Stopped|Idle|Verifying|Uploading|(Up & Down)|Downloading|Seeding)))(\w+)\s+/\4   \1\2    /" |
     sed "
-      s/Stopped//g;
-      s/Seeding//g;
-      s/Idle//g;
-      s/Downloading//g;
-      s/Up & Down//g;
-      # s/100%//g;
-      s/Uploading//g;
-      s/Verifying//g;
+      s/Stopped/$ICON_STOP/g;
+      s/Seeding/$ICON_SEEDDING/g;
+      s/Idle/$ICON_IDLE/g;
+      s/Downloading/$ICON_DOWNLOADING/g;
+      s/Up & Down/$ICON_DOWNLOADING/g;
+      # s/100%/$ICON_DONE/g;
+      s/Uploading/$ICON_UPLOADING/g;
+      s/Verifying/$ICON_VERIFYING/g;
       " |
     while read line
     do
-      echo "${line} | color=#999999 font='RobotoMono Nerd Font' length=$LENGTH";
-      echo "-- Start torrent|terminal=false bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-s"
-      echo "-- Stop torrent|terminal=false bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-S"
-      echo "-- Remove torrent|terminal=false bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-r"
-      echo "-- Remove torrent & delete data|terminal=false bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-rad"
-      echo "-- Verify torrent|terminal=false bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-v"
-
+      echo "${line} | font='$CUSTOM_FONT' length=$LENGTH";
+      echo "-- Start torrent|terminal=false reload=true bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-s"
+      echo "-- Stop torrent|terminal=false reload=true bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-S"
+      echo "-- Remove torrent|terminal=false reload=true bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-r"
+      echo "-- Remove torrent & delete data|terminal=false reload=true bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-rad"
+      echo "-- Verify torrent|terminal=false reload=true bash=/usr/local/bin/transmission-remote param1=-t` echo $line | awk '{print $2}'` param2=-v"
     done
 }
 
@@ -125,10 +129,10 @@ function print_status () {
   echo "Summary:|color=green";
   print_menu_footer;
   echo "---";
-  echo "Start All| color=green terminal=false bash=/usr/local/bin/transmission-remote param1=-tall param2=-s";
-  echo "Stop All| color=red terminal=false bash=/usr/local/bin/transmission-remote param1=-tall param2=-S";
+  echo "Start all torrents| color=green terminal=false bash=/usr/local/bin/transmission-remote param1=-tall param2=-s";
+  echo "Stop all torrents| color=red terminal=false bash=/usr/local/bin/transmission-remote param1=-tall param2=-S";
   echo "---";
-  echo "❗️ Stop Daemon";
+  echo "Stop daemon";
   echo "--Stop|terminal=false bash=$STOP_DAEMON color=red";
 }
 
