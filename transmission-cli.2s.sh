@@ -95,7 +95,7 @@ function print_menu_footer () {
 function print_torrents_list () {
   /usr/local/bin/transmission-remote -l |
     grep % |
-    /usr/local/bin/ssed -R "s/(\d+\s+)(\d+%).+?(?=((Stopped|Idle|Verifying|Uploading|(Up & Down)|Downloading|Seeding)))(\w+)\s+/\4   \1\2    /" |
+    /usr/local/bin/ssed -R "s/(\d+\s+)(\d+%).+?(?=((Stopped|Idle|Verifying|Uploading|(Up\s.\sDown)|Downloading|Seeding)))(?:(Up & Down)|\w+)?\s*/\3   \1\2    /" |
     sed "
       s/Stopped/$ICON_STOP/g;
       s/Seeding/$ICON_SEEDDING/g;
